@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 
 public class ExtinguisherPin : MonoBehaviour
@@ -7,30 +7,60 @@ public class ExtinguisherPin : MonoBehaviour
     public Transform lockedPosition;
     public float unlockDistance = 0.1f;
     public bool isUnlocked = false;
+    public AudioSource pinAudio;
+    public AudioClip pinPullSound;
 
-    private void Awake()
+    private bool hasPlayedSound = false;
+    private Vector3 originLocalPos;
+    private Quaternion originLocalRot;
+    private Rigidbody rb;
+
+    void Awake()
     {
-        if (grabInteractable == null)
-            grabInteractable = GetComponent<XRGrabInteractable>();
+        rb = GetComponent<Rigidbody>();
+        originLocalPos = transform.localPosition;
+        originLocalRot = transform.localRotation;
     }
 
-    private void Update()
+    void Update()
     {
-        if (!isUnlocked)
+        if (!isUnlocked && lockedPosition != null)
         {
-            float dist = Vector3.Distance(transform.position, lockedPosition.position);
-            if (dist > unlockDistance)
+            float distance = Vector3.Distance(transform.position, lockedPosition.position);
+
+            if (distance > unlockDistance)
             {
-                UnlockPin();
+                Unlock();
             }
         }
     }
 
-    void UnlockPin()
+    void Unlock()
     {
         isUnlocked = true;
-        Debug.Log("Pin removed! Extinguisher is now active.");
-        // Optionally: notify extinguisher script that it can now spray
-        GetComponent<Rigidbody>().isKinematic = false;
+
+        if (rb != null)
+            rb.isKinematic = false;
+
+        if (!hasPlayedSound && pinAudio != null && pinPullSound != null)
+        {
+            pinAudio.PlayOneShot(pinPullSound);
+            hasPlayedSound = true;
+        }
+    }
+
+    public void ResetPin()
+    {
+        isUnlocked = false;
+        hasPlayedSound = false;
+        transform.localPosition = originLocalPos;
+        transform.localRotation = originLocalRot;
+
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
     }
 }
